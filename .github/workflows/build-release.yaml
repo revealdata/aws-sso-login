@@ -39,7 +39,6 @@ jobs:
                 uname -a &&
                 pyinstaller -F -n aws-sso-login aws-sso-login.py &&
                 cd dist/ &&
-                ls -laR &&
                 file aws-sso-login &&
                 zip -r9 aws-sso-login-linux-amd64.zip aws-sso-login;
                 ls -laR
@@ -51,7 +50,6 @@ jobs:
                 uname -a &&
                 pyinstaller -F -n aws-sso-login aws-sso-login.py &&
                 cd dist/ &&
-                ls -laR &&
                 file aws-sso-login &&
                 zip -r9 aws-sso-login-macos-amd64.zip aws-sso-login;
                 ls -laR
