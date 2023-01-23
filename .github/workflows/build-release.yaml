@@ -48,13 +48,14 @@ jobs:
             TARGET: macos
             CMD_BUILD: >
                 uname -a &&
-                pyinstaller -F -n aws-sso-login aws-sso-login.py &&
+                pyinstaller -F -w -n aws-sso-login -i ./resources/aws-sso-login.icns aws-sso-login.py &&
                 cd dist/ &&
-                file aws-sso-login &&
-                zip -r9 aws-sso-login-macos-amd64.zip aws-sso-login;
+                mv aws-sso-login.app/Contents/MacOS/aws-sso-login aws-sso-login.app/Contents/MacOS/aws-sso-login_bin &&
+                cp ../resources/start.sh aws-sso-login.app/Contents/MacOS/aws-sso-login &&
+                chmod +x aws-sso-login.app/Contents/MacOS/aws-sso-login &&
+                zip -r9 aws-sso-login-macos-amd64.zip aws-sso-login aws-sso-login.app/;
+                file aws-sso-login;
                 ls -laR
-            OUT_FILE_NAME: aws-sso-login-macos-amd64.zip
-            ASSET_MIME: application/zip
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: pyinstaller -F -c -n aws-sso-login.exe -i resources/aws-sso-login.ico aws-sso-login.py
