@@ -8,7 +8,7 @@ The AWS Login manager simplifies session management for AWS SSO.
 - Optionally authorize docker with AWS credentials for each AWS profile using AWS SSO.
 - Optionally Authorize kubeconfig for EKS with AWS credentials for each AWS profile using AWS SSO.
 
-## [Releases](https://github.com/revealdata/aws-sso-login/releases)
+## [Releases](https://github.com/bz0qyz/aws-sso-login/releases)
 Each release version builds a portable executable for each of the following operaing systems
 1. Linux (AMD64) `aws-sso-login-linux-amd64.zip`
 1. Mac OS (AMD54) `aws-sso-login-macos-amd64.zip` - Tested as working on Apple Silicon/M1.
