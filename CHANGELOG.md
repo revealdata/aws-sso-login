@@ -1,3 +1,6 @@
+## Version: 1.1.0
+- Add UI
+
 ## Version: 1.0.5
  - Add Signal handler to cancel logins
 

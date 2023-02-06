@@ -14,7 +14,7 @@ APP = {
     'name': 'aws-sso-login',
     'description': 'AWS SSO Login Manager',
     'version': '1.1.0',
-    'author': 'Russ Cook <bz0qyz@protonmail.com>',
+    'author': 'Russ Cook <rcook@revealdata.com>',
 }
 DEFAULTS = {
     "config": {
