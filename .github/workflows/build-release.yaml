@@ -66,7 +66,8 @@ jobs:
                 --hide-extension "aws-sso-login.app"
                 --app-drop-link 240 135
                 "aws-sso-login-macos-amd64.dmg"
-                "dist/";
+                "dist/" &&
+                mv aws-sso-login-macos-amd64.dmg dist/
             OUT_FILE_NAME: aws-sso-login-macos-amd64.dmg
             ASSET_MIME: application/octet-stream
           - os: windows-latest
