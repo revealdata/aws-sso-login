@@ -1,4 +1,8 @@
 ## Version: 1.1.0
+- Add new icon
+- fix bug with UI and ECR login
+
+## Version: 1.1.0
 - Add UI
 
 ## Version: 1.0.5
