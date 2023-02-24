@@ -1,5 +1,7 @@
 .DS_Store
 .idea
+__pycache__
 **/aws-sso-login.spec
 **/build
 **/dist
+**/config
