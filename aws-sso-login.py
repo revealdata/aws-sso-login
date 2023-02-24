@@ -13,7 +13,7 @@ from lib.ui import QApp, MainWindow
 APP = {
     'name': 'aws-sso-login',
     'description': 'AWS SSO Login Manager',
-    'version': '1.1.0',
+    'version': '1.1.1',
     'author': 'Russ Cook <rcook@revealdata.com>',
 }
 DEFAULTS = {
@@ -303,17 +303,13 @@ if __name__ == "__main__":
         log.log(DRYRUN, "Dry run mode enabled. No changes will be made.")
     PROFILES = {}
     KUBES = {}
-    OPS_ENABLED = {
-        "kubectl": (not args.skip_eks),
-        "docker": args.do_ecr
-    }
 
     if not os.path.isfile(args.cmd_kubectl):
-        OPS_ENABLED["kubectl"] = False
         ARGUMENTS["options"]["skip_eks"]["enabled"] = False
+        args.skip_eks = True
         log.warning(f"Kubectl command file: {args.cmd_kubectl}, not found. Kubectl login will be disabled.")
     if not os.path.isfile(args.cmd_docker):
-        OPS_ENABLED["docker"] = False
+        args.do_ecr = False
         ARGUMENTS["options"]["do_ecr"]["enabled"] = False
         log.warning(f"Docker command file: {args.cmd_docker}, not found. Docker ECR login will be disabled.")
 
@@ -383,7 +379,6 @@ if __name__ == "__main__":
     if not args.no_ui:
         ui_args = {
             "app": APP,
-            "ops_enabled": OPS_ENABLED,
             "aws_profiles": PROFILES,
             "eks_clusters": KUBES,
             "options": args,
@@ -398,7 +393,13 @@ if __name__ == "__main__":
             log.info("Login process canceled by user.")
             sys.exit(1)
 
-    
+        if "value" in window.args["arguments"]["options"]["skip_login"]:
+            args.skip_login = window.args["arguments"]["options"]["skip_login"]["value"]
+        if "value" in window.args["arguments"]["options"]["skip_eks"]:
+            args.skip_eks = window.args["arguments"]["options"]["skip_eks"]["value"]
+        if "value" in window.args["arguments"]["options"]["do_ecr"]:
+            args.do_ecr = window.args["arguments"]["options"]["do_ecr"]["value"]
+
     for name, profile in PROFILES.items():
         
         if hasattr(profile, "sso_start_url") and profile.sso_start_url:
@@ -414,7 +415,7 @@ if __name__ == "__main__":
                     break
 
             # Login to AWS ECR
-            if args.do_ecr and OPS_ENABLED["docker"]:
+            if args.do_ecr:
                 try:
                     if aws_ecr_docker_login(profile):
                         log.info("AWS ECR Login successful for profile: %s", profile.name)
@@ -424,7 +425,7 @@ if __name__ == "__main__":
                     log.error("AWS ECR Login canceled by user.")
                     break
 
-    if not args.skip_eks and OPS_ENABLED["kubectl"]:
+    if not args.skip_eks:
         for name, kubeconfig in KUBES.items():
             if kubeconfig.aws_profile and kubeconfig.enable:
                 try:

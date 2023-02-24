@@ -2,9 +2,10 @@ import sys
 from PyQt6 import QtGui
 from PyQt6.QtCore import QSize, Qt, QByteArray
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar
-from lib.icon import ICON_BASE64
+from lib.icon import ICON
 
 QApp = QApplication(sys.argv)
+Icon = ICON("aws_identity_center.png")
 
 
 class MainWindow(QMainWindow):
@@ -16,8 +17,9 @@ class MainWindow(QMainWindow):
         self.layout = QGridLayout()
 
         pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(QByteArray.fromBase64(ICON_BASE64))
-        QApp.setWindowIcon(QtGui.QIcon(QtGui.QIcon(pixmap)))
+        if Icon.base64:
+            pixmap.loadFromData(QByteArray.fromBase64(Icon.base64))
+            QApp.setWindowIcon(QtGui.QIcon(QtGui.QIcon(pixmap)))
 
         # Set the central widget of the Window.
         widget = QWidget(self)
@@ -79,8 +81,14 @@ class MainWindow(QMainWindow):
             QApp.quit()
     def checkbox_changed(self, state):
         """ Process the checkbox clicks. """
+        any_checked = False
         for checkbox in self.options:
             value = self.options[checkbox].isChecked()
+            any_checked = value or any_checked
             if self.args['arguments']["options"][checkbox]["invert"]:
                 value = not value
+            self.args['arguments']["options"][checkbox]["value"] = value
             setattr(self.args['options'], checkbox, value)
+
+        # Set the start button to enabled if any checkbox is checked.
+        self.buttongroup.button(1).setEnabled(any_checked)
