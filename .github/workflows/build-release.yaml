@@ -27,7 +27,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
   build:
-    name: Build packages
+    name: Build packages for Release
     needs: createrelease
     runs-on: ${{ matrix.os }}
     strategy:
