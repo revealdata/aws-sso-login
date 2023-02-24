@@ -54,6 +54,7 @@ jobs:
                 chmod +x aws-sso-login.app/Contents/MacOS/aws-sso-login &&
                 cp ../resources/aws_identity_center.png aws-sso-login.app/Contents/Resources/ &&
                 pkgbuild --root . --install-location /Applications  aws-sso-login-macos-amd64.pkg;
+                exit($?)
             OUT_FILE_NAME: aws-sso-login-macos-amd64.pkg
             ASSET_MIME: application/octet-stream
           - os: windows-latest
