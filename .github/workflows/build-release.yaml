@@ -46,6 +46,7 @@ jobs:
           - os: macos-latest
             TARGET: macos
             CMD_BUILD: >
+                set -x &&
                 uname -a &&
                 pyinstaller -F -w -n aws-sso-login -i ./resources/aws_identity_center.icns aws-sso-login.py &&
                 cd dist/ &&
