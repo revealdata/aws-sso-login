@@ -47,7 +47,7 @@ jobs:
             TARGET: macos
             CMD_BUILD: >
                 uname -a &&
-                pyinstaller --onefile --clean --windowed --name aws-sso-login \
+                pyinstaller --onefile --windowed --name aws-sso-login \
                 -i ./resources/aws_identity_center.icns \
                 aws-sso-login.py &&
                 cd dist/ &&
