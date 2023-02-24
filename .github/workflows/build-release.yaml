@@ -56,16 +56,16 @@ jobs:
                 cp ../resources/aws_identity_center.png aws-sso-login.app/Contents/Resources/ &&
                 cd .. &&
                 brew install create-dmg &&
-                create-dmg --volname "AWS SSO Login Installer" \
-                --volicon "resources/aws_identity_center.icns" \
-                --background "resources/installer_background.png" \
-                --window-size 480 440 \
-                --window-pos 400 420 \
-                --icon-size 100 \
-                --icon "aws-sso-login.app" 0 140 \
-                --hide-extension "aws-sso-login.app" \
-                --app-drop-link 240 135 \
-                "aws-sso-login-macos-amd64.dmg" \
+                create-dmg --volname "AWS SSO Login Installer"
+                --volicon "resources/aws_identity_center.icns"
+                --background "resources/installer_background.png"
+                --window-size 480 440
+                --window-pos 400 420
+                --icon-size 100
+                --icon "aws-sso-login.app" 0 140
+                --hide-extension "aws-sso-login.app"
+                --app-drop-link 240 135
+                "aws-sso-login-macos-amd64.dmg"
                 "dist/";
             OUT_FILE_NAME: aws-sso-login-macos-amd64.dmg
             ASSET_MIME: application/octet-stream
