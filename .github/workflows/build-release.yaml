@@ -48,13 +48,8 @@ jobs:
             CMD_BUILD: >
                 set -x &&
                 uname -a &&
-                pyinstaller -F -w -n aws-sso-login -i ./resources/aws_identity_center.icns aws-sso-login.py &&
-                cd dist/ &&
-                mv aws-sso-login.app/Contents/MacOS/aws-sso-login aws-sso-login.app/Contents/MacOS/aws-sso-login_bin &&
-                cp ../resources/start.sh aws-sso-login.app/Contents/MacOS/aws-sso-login &&
-                chmod +x aws-sso-login.app/Contents/MacOS/aws-sso-login &&
-                cp ../resources/aws_identity_center.png aws-sso-login.app/Contents/Resources/ &&
-                cd .. &&
+                pyinstaller -F -w -n aws-sso-login -i ./resources/aws_identity_center.icns --target-architecture x86_64 --osx-bundle-identifier com.revealdata.aws-sso-login --noconfirm aws-sso-login.py &&
+                cp ./resources/aws_identity_center.png ./dist/aws-sso-login.app/Contents/Resources/ &&
                 brew install create-dmg &&
                 create-dmg --volname "AWS SSO Login Installer"
                 --volicon "resources/aws_identity_center.icns"
