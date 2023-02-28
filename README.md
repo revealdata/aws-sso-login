@@ -11,16 +11,24 @@ The AWS Login manager simplifies session management for AWS SSO.
 ## [Releases](https://github.com/bz0qyz/aws-sso-login/releases)
 Each release version builds a portable executable for each of the following operaing systems
 1. Linux (AMD64) `aws-sso-login-linux-amd64.zip`
-1. Mac OS (AMD54) `aws-sso-login-macos-amd64.zip` - Tested as working on Apple Silicon/M1.
+1. Mac OS (AMD54) `aws-sso-login-macos-amd64.dmg` - Tested as working on Apple Silicon/M1.
 1. Windows `aws-sso-login.exe`
 
 ### MacOS Release
-Requires:
-- iTerm2 (`.app` version only)
-
 The MacOS release includes both a command-line binary and a `.app` version. The app version can be used as a standard Application when running without any command-line arguments. 
 
 You can use the keyboard shortcut: **Control+Shift+Command+T** in Finder to add the application to the Mac Dock.
+
+If you run the application you may receive one the following errors:
+- `aws-sso-login.app cannot be opened because the developer cannot be verified.`
+
+  To resolve this error, open your System Settings and select the Privacy tab. There you will see a list of applications that require authorization. Click the "Allow" button next to the `aws-sso-login.app` entry.
+- `aws-sso-login.app is damaged and cannot be opened.`
+
+  To resolve this error, open a terminal and run the following command: 
+  ```
+  xattr -d com.apple.quarantine /Applications/aws-sso-login.app
+  ```
 
 ### Linux Release
 The Linux release cannot be used with Windows subsystem for Linux. The application needs to spawn a browser session which does not translate from WSL to Windows.
@@ -28,38 +36,15 @@ The Linux release cannot be used with Windows subsystem for Linux. The applicati
 
 ## Usage
 ```
-aws-login-manager.py [-h] [-v] [--dry-run] \
-  [--config-eks ${HOME}.eks_auth] \
-  [--cmd-awscli /usr/local/bin/aws] \
-  [--config-awscli ${HOME}/.aws/config] \
-  [--cmd-kubectl /usr/local/bin/kubectl] \
-  [--cmd-docker /usr/local/bin/docker] \
-  [--skip-login] [--skip-eks] [--do-ecr] 
+aws-login-manager.py
 ```
-
-### Arguments
-| Argument | ENV Variable| Description | Default Value |
-| -------- |------------ | ----------- | ------------- |
-| `-h, --help` | - | show this help message and exit | - |
-| `-v, --verbose` | - | Enable verbose logging. Add multiple to increase verbosity. | - |
-| `--dry-run` | - | Dry run mode. Displays commands that would have run | - |
-| `--config-eks` | `CONFIG_EKS` | Path to EKS config file | `${HOME}/.eks_auth` |
-| `--config-awscli` | `CONFIG_AWSCLI` | Path to awscli config file | `${HOME}/.aws/config` |
-| `--cmd-awscli` | `CMD_AWSCLI` | Path to awscli | `$(which aws)` |
-| `--cmd-kubectl` | `CMD_KUBECTL` | Path to kubectl | `$(which kubectl)` |
-| `--cmd-docker` | `CMD_DOCKER` | Path to docker | `$(which docker)` |
-| `--skip-login` | - | Skip login to AWS SSO | `False` |
-| `--skip-eks` | - | Skip kubeclt EKS authorization | `False` |
-| `--do-ecr` | - | Also login to AWS ECR. (requires local docker) | `False` |
-
-
 
 The script will attempt to locate the following application in your path (each can be specified using command arguments):
 - `aws`
 - `docker`
 - `kubectl`
 
-If the application is not found in your path, that feature will be disabled. If `aws` is not found, the script will exit.
+If the application is not found in your path, that feature will be disabled. If `aws` is not found, the appplication will not run.
 
 ## Configuration
 The script will attempt to locate the following configuration files in your path (each can be specified using command arguments):
