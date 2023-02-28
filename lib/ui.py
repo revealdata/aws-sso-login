@@ -5,7 +5,7 @@ import requests
 import json
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess
-from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel, QProgressBar
 from lib.icon import ICON
 from lib.classes import Initialize
 
@@ -103,6 +103,8 @@ class MainWindow(QMainWindow):
         self.capture = None
         self.app = self.kwargs["app"]
         self.args = Initialize(self.kwargs["arguments"])
+        self.height = 800
+        self.width = 740
         self.layout = QGridLayout()
 
         pixmap = QtGui.QPixmap()
@@ -115,7 +117,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         # self.setFixedSize(QSize(600, 800))
-        self.setMinimumSize(QSize(740, 800))
+        self.setMinimumSize(QSize(self.width, self.height))
         self.setWindowTitle(f"{self.app['description']}")
 
         optionsgroup = QGroupBox("Login Options")
@@ -156,15 +158,23 @@ class MainWindow(QMainWindow):
         widget.setLayout(self.layout)
 
         self.statusbar = QStatusBar()
-        self.statusbar.showMessage(f"{self.app['name']} v{self.app['version']}")
         self.statusbar.setToolTip(f"Author: {self.app['author']}")
-        self.statusbar.layout().setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.progressbar = QProgressBar()
+        self.statusbar.addWidget(self.progressbar)
+        self.progressbar.setValue(0)
+        self.progressbar.setMinimumWidth((self.width - 6))
+        self.progressbar.hide()
         self.setStatusBar(self.statusbar)
 
         self.__load_ui_options__()
         self.__load_ui_config__()
         self.__show_messages__()
         self.__check_update__()
+        self.__statusbar_message__(f"AWS Profiles: {len(self.args.profiles)} | EKS Profiles: {len(self.args.kube_configs)}", 0)
+
+    def __statusbar_message__(self, message, timeout=0, add_app_prefix=True, prefix="", postfix=""):
+        prefix = f"{self.app['name']} v{self.app['version']} | " if add_app_prefix else str(prefix)
+        self.statusbar.showMessage(f"{prefix}{message}{postfix}", timeout)
 
     def __check_update__(self):
         """ Check the GitHub repo releases for updates. """
@@ -189,7 +199,7 @@ class MainWindow(QMainWindow):
                     if not is_latest:
                         self.message(f"New version available: {latest_version}")
                         self.message(f"Download: {self.app['url']}/releases/latest")
-                        self.statusbar.showMessage(f"{self.app['name']} v{self.app['version']} - New version available: {latest_version}")
+                        self.__statusbar_message__(f"New version available: {latest_version}", add_app_prefix=True)
                         
                         return True
         except Exception as e:
@@ -253,9 +263,14 @@ class MainWindow(QMainWindow):
 
     def run(self):
         self.output.clear()
+        self.statusbar.clearMessage()
+        progress_increment = int(100 / len(self.args.profiles))
+        self.progressbar.show()
+        
         self.message("Starting Login and Authorization Process...")
         
         # SSO Login
+        
         if self.options["do_login"].isChecked():
             self.message("<strong>Begin AWS SSO Login. Please wait...</strong>")
             for name, profile in self.args.profiles.items():
@@ -265,7 +280,10 @@ class MainWindow(QMainWindow):
                     self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", ["--profile", f"{profile.name}", "--region", f"{profile.region}","sso", "login", '--no-cli-pager'])
                     self.process.waitForFinished()
                     self.message_prefix = None
-
+                    self.progressbar.setValue(self.progressbar.value() + 1)
+                    
+                self.progressbar.setValue( self.progressbar.value() + progress_increment)
+            self.progressbar.setValue(0)
             self.message("AWS SSO Login Completed.<br/>")
 
         # ECR Login
@@ -299,14 +317,18 @@ class MainWindow(QMainWindow):
                         self.message_prefix = None
                     else:
                         self.message("Failed to get ECR password. Check AWS CLI configuration.")
+
+                self.progressbar.setValue( self.progressbar.value() + progress_increment)
+            self.progressbar.setValue(0)
             self.message("AWS ECR Login Completed.<br/>")
 
         # Kubectl Login
+        self.progressbar.setValue(0)
+        progress_increment = int(100 / len(self.args.kube_configs))
         if self.options["do_eks"].isChecked():
             self.message("<strong>Begin kubectl Authorization. Please wait...</strong>")
             for name, kubeconfig in self.args.kube_configs.items():
                 if kubeconfig.aws_profile and kubeconfig.enable:
-                    
                     # self.message(f"\n<br/><strong>[Kubeconfig: {name}]</strong>")
                     self.message_prefix = f"- [{name}]: "
                     self.init_process()
@@ -336,9 +358,13 @@ class MainWindow(QMainWindow):
                     self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", args)
                     self.process.waitForFinished()
                     self.message_prefix = None
+
+                self.progressbar.setValue( self.progressbar.value() + progress_increment)
             self.message("AWS EKS Authorization Completed.<br/>")
 
+        self.__statusbar_message__(f"Completed", add_app_prefix=True)
         self.button_start.setEnabled(True)
+        self.progressbar.hide()
 
     def init_process(self, capture=False):
         self.process = QtCore.QProcess(self)
