@@ -300,6 +300,7 @@ class MainWindow(QMainWindow):
                         "--no-cli-pager"
                     ])
                     self.process.waitForFinished()
+                    self.progressbar.setValue( self.progressbar.value() + int(progress_increment /2))
                     if self.capture:
                         profile.ecr_password = self.capture
                         self.capture = None
@@ -318,7 +319,7 @@ class MainWindow(QMainWindow):
                     else:
                         self.message("Failed to get ECR password. Check AWS CLI configuration.")
 
-                self.progressbar.setValue( self.progressbar.value() + progress_increment)
+                self.progressbar.setValue( self.progressbar.value() + int(progress_increment /2))
             self.progressbar.setValue(0)
             self.message("AWS ECR Login Completed.<br/>")
 
