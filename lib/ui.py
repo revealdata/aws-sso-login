@@ -177,7 +177,16 @@ class MainWindow(QMainWindow):
                 latest_version = response.json()["tag_name"]
                 version = re.search(r"v\d+\.\d+\.\d+", latest_version)
                 if version:
-                    if not latest_version.endswith(self.app["version"]):
+                    latest_version = latest_version.replace("v", "")
+                    latest_version_list = latest_version.split(".")
+                    current_version_list = self.app["version"].split(".")
+                    is_latest = True
+                    for v in latest_version_list:
+                        if int(v) > int(current_version_list[latest_version_list.index(v)]):
+                            is_latest = False
+                            break
+
+                    if not is_latest:
                         self.message(f"New version available: {latest_version}")
                         self.message(f"Download: {self.app['url']}/releases/latest")
                         self.statusbar.showMessage(f"{self.app['name']} v{self.app['version']} - New version available: {latest_version}")
