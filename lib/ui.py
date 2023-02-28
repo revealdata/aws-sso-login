@@ -1,6 +1,8 @@
 import sys
 import os
 import re
+import requests
+import json
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel
@@ -162,6 +164,27 @@ class MainWindow(QMainWindow):
         self.__load_ui_options__()
         self.__load_ui_config__()
         self.__show_messages__()
+        self.__check_update__()
+
+    def __check_update__(self):
+        """ Check the GitHub repo releases for updates. """
+        if not "url" in self.app:
+            return False
+        url = f"{self.app['url']}/releases/latest"
+        try:
+            response = requests.get(url, timeout=5, verify=False, allow_redirects=True, headers={"Accept": "application/json"})
+            if response.status_code == 200:
+                latest_version = response.json()["tag_name"]
+                version = re.search(r"v\d+\.\d+\.\d+", latest_version)
+                if version:
+                    if not latest_version.endswith(self.app["version"]):
+                        self.message(f"New version available: {latest_version}")
+                        self.message(f"Download: {self.app['url']}/releases/latest")
+                        self.statusbar.showMessage(f"{self.app['name']} v{self.app['version']} - New version available: {latest_version}")
+                        
+                        return True
+        except Exception as e:
+            return False
 
     def __load_ui_options__(self):
         for key, meta in self.args.arguments["options"].items():
