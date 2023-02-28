@@ -5,7 +5,7 @@ from lib.classes import Argument
 APP = {
     'name': 'aws-sso-login',
     'description': 'AWS SSO Login Manager',
-    'version': '1.1.0',
+    'version': '1.2.0',
     'author': 'Russ Cook <rcook@revealdata.com>',
     'url': 'https://github.com/revealdata/aws-sso-login'
 }
