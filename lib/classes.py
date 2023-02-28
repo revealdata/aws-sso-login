@@ -81,7 +81,8 @@ class Initialize():
         self.eks_config = None
         self.profiles = {}
         self.kube_configs = {}
-        if f"{platform.system()}".lower() == "windows":
+        self.system = f"{platform.system()}".lower()
+        if self.system == "windows":
             self.search_paths = [f"{Path.home()}{os.sep}bin", f"{Path.home()}{os.sep}AppData{os.sep}Local{os.sep}Programs{os.sep}aws-sso-login", f"C:\Windows", f"C:\Windows\System32"]
         else:
             self.search_paths = [f"{Path.home()}{os.sep}bin",'/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
@@ -123,8 +124,6 @@ class Initialize():
                     self.kube_configs[kube_config.context] = kube_config
 
     def __bin_search__(self, cmd):
-        # search_paths = [f"{Path.home()}{os.sep}bin",'/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
-        #search_paths = [f"{Path.home()}{os.sep}bin"]
         try:
             self.search_paths.extend(os.environ["PATH"].split(os.pathsep))
         except Exception:
@@ -132,6 +131,8 @@ class Initialize():
         # remove duplicates
         self.search_paths = list(dict.fromkeys(self.search_paths))
         bin_path = None
+        if self.system == "windows":
+            cmd = f"{cmd}.exe"
         for path in self.search_paths:
             if os.path.isfile(f"{path}{os.sep}{cmd}"):
                 bin_path = f"{path}{os.sep}{cmd}"
