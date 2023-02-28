@@ -50,7 +50,7 @@ jobs:
                 uname -a &&
                 pyinstaller --noconfirm aws-sso-login.spec  &&
                 cp ./resources/aws_identity_center.png ./dist/aws-sso-login.app/Contents/Resources/ &&
-                cp ./resources/README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
+                cp ./README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
                 brew install create-dmg &&
                 create-dmg --volname "AWS SSO Login Installer"
                 --volicon "resources/aws_identity_center.icns"
