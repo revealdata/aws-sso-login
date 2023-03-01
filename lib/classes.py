@@ -9,7 +9,8 @@ class Argument():
             value=None, enabled=True,
             options=[], url=None, bin=None,
             stop_options=None, stop_run=False,
-            verification={}
+            verification={},
+            total=None
         ):
         self.label = label
         self.help = help
@@ -18,6 +19,7 @@ class Argument():
         self.bin = bin
         self.enabled = enabled
         self.options = options
+        self.total = total
         self.stop_options = stop_options
         self.stop_run = stop_run
         self.verification = verification
@@ -112,6 +114,7 @@ class Initialize():
             for section in self.aws_config.sections():
                 profile = AwsProfile(self.aws_config, section)
                 self.profiles[profile.name] = profile
+            self.arguments["options"]["do_login"].total = len(self.profiles)
         
         # Create a dictionary of EKS clusters
         if self.eks_config:
@@ -122,6 +125,7 @@ class Initialize():
                     if kube_config.aws_profile and kube_config.aws_profile in self.profiles:
                         kube_config.aws_profile = self.profiles[kube_config.aws_profile]
                     self.kube_configs[kube_config.context] = kube_config
+            self.arguments["options"]["do_eks"].total = len(self.kube_configs)
 
     def __bin_search__(self, cmd):
         try:

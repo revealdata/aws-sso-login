@@ -19,7 +19,9 @@ class QCheckBoxOptions(QCheckBox):
         self.metadata = metadata
         self.button = button
         self.options = options
-        self.setText(self.metadata.label)
+        self.total = self.metadata.total if hasattr(self.metadata, "total") else None
+        self.label = f"{self.metadata.label} ({self.total})" if self.total else f"{self.metadata.label}"
+        self.setText(f"{self.label}")
         self.setChecked(self.metadata.value)
         self.setToolTip(self.metadata.help)
         self.stateChanged.connect(self.checkbox_changed)
@@ -270,7 +272,6 @@ class MainWindow(QMainWindow):
         self.message("Starting Login and Authorization Process...")
         
         # SSO Login
-        
         if self.options["do_login"].isChecked():
             self.message("<strong>Begin AWS SSO Login. Please wait...</strong>")
             for name, profile in self.args.profiles.items():
