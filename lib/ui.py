@@ -191,8 +191,8 @@ class MainWindow(QMainWindow):
                     latest_version_list = latest_version.split(".")
                     current_version_list = self.app["version"].split(".")
                     is_latest = True
-                    for v in latest_version_list:
-                        if int(v) > int(current_version_list[latest_version_list.index(v)]):
+                    for idx, v in enumerate(latest_version_list):
+                        if int(v) > int(current_version_list[idx]):
                             is_latest = False
                             break
 
