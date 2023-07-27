@@ -27,7 +27,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
   build:
-    name: Build packages for Release
+    name: Build packages
     needs: createrelease
     runs-on: ${{ matrix.os }}
     strategy:
@@ -66,7 +66,7 @@ jobs:
                 mv aws-sso-login-macos-amd64.dmg dist/
             OUT_FILE_NAME: aws-sso-login-macos-amd64.dmg
             ASSET_MIME: application/octet-stream
-          - os: [ macos-latest, ARM64 ]
+          - os: [ macOS, ARM64 ]
             TARGET: "macos (arm64)"
             CMD_BUILD: >
               set -x &&

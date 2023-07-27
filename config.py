@@ -5,7 +5,7 @@ from lib.classes import Argument
 APP = {
     'name': 'aws-sso-login',
     'description': 'AWS SSO Login Manager',
-    'version': '1.2.2',
+    'version': '1.2.3',
     'author': 'Russ Cook <rcook@revealdata.com>',
     'url': 'https://github.com/revealdata/aws-sso-login'
 }
@@ -45,7 +45,7 @@ ARGUMENTS = {
         ),
         "docker": Argument(
             label="docker binary",
-            help="Path to 'docker' binary.", 
+            help="Path to 'docker' binary.",
             bin="docker",
             stop_options=["do_ecr"],
             url="https://docs.docker.com/get-docker/",
