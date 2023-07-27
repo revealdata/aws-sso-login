@@ -4,7 +4,7 @@ from pathlib import Path
 from configparser import ConfigParser
 
 class Argument():
-    def __init__(self, 
+    def __init__(self,
             label, help,
             value=None, enabled=True,
             options=[], url=None, bin=None,
@@ -75,7 +75,7 @@ class KubeConfig():
             return True
         else:
             return False
-        
+
 class Initialize():
     def __init__(self, arguments):
         self.arguments = arguments
@@ -113,9 +113,10 @@ class Initialize():
         if self.aws_config:
             for section in self.aws_config.sections():
                 profile = AwsProfile(self.aws_config, section)
-                self.profiles[profile.name] = profile
+                if profile.sso_start_url:
+                    self.profiles[profile.name] = profile
             self.arguments["options"]["do_login"].total = len(self.profiles)
-        
+
         # Create a dictionary of EKS clusters
         if self.eks_config:
             for section in self.eks_config.sections():
