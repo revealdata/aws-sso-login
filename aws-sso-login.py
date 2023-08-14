@@ -5,8 +5,6 @@ from lib.ui import QApp, MainWindow
 
 # Global variables
 
-
-
 def __retval_to_bool(int):
     """ Convert the return value of a subprocess to a boolean """
     if int == 0:

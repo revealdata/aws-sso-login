@@ -5,7 +5,7 @@ from lib.classes import Argument
 APP = {
     'name': 'aws-sso-login',
     'description': 'AWS SSO Login Manager',
-    'version': '1.2.3',
+    'version': '1.2.4',
     'author': 'Russ Cook <rcook@revealdata.com>',
     'url': 'https://github.com/revealdata/aws-sso-login'
 }
@@ -57,5 +57,6 @@ ARGUMENTS = {
         "do_login": Argument(label="AWS SSO Login", help="Skip login to AWS SSO.", enabled=True, value=True, total=0),
         "do_eks": Argument(label="AWS EKS Auth", help="Skip EKS authorization.", enabled=True, value=True, total=0),
         "do_ecr": Argument(label="AWS ECR Auth", help="Login to AWS ECR. (requires docker)", enabled=True, value=False),
+        "do_cart": Argument(label="AWS CodeArtifact", help="Get AWS CodeArtifact Auth Token.", enabled=True, value=False, total=0),
     }
 }

@@ -27,15 +27,33 @@ class Argument():
 
 class AwsProfile():
     def __init__(self, aws_config, section):
-        self.config_attrs = ('region', 'sso_region', 'source_profile', 'role_arn', 'sso_account_id', 'sso_role_name', 'sso_start_url')
+        self.config_attrs = (
+            'region',
+            'sso_region',
+            'source_profile',
+            'role_arn',
+            'sso_account_id',
+            'sso_role_name',
+            'sso_start_url',
+            'code_artifact_domain'
+        )
         self.section = section
         self.ecr_password = None
+        self.enabled = True
+        self.code_artifact_domain = None
+        aws_sso_login = self.__get_config_attribute__(aws_config, "aws_sso_login")
+        if aws_sso_login:
+            self.enabled = self.__str_to_bool__(aws_sso_login)
 
         self.name = section[8:] if section.startswith('profile ') else section
         # Load the aws config attributes
         for attr in self.config_attrs:
+            # print(f"[{self.name}] Setting {attr} = {self.__get_config_attribute__(aws_config, attr)}")
             setattr(self, attr, self.__get_config_attribute__(aws_config, attr))
 
+    def __str_to_bool__(self, value):
+        """ Convert a string to a boolean value """
+        return value.lower() in ("yes", "true", "t", "1")
     def __get_config_attribute__(self, aws_config, attr: str):
         """ Get the value of an attribute from the aws config file """
         try:
@@ -113,7 +131,14 @@ class Initialize():
         if self.aws_config:
             for section in self.aws_config.sections():
                 profile = AwsProfile(self.aws_config, section)
-                if profile.sso_start_url:
+
+                if profile.sso_start_url and profile.enabled:
+                    # If any of the profiles contains code_artifact_domain, enable the cart option
+                    if profile.code_artifact_domain:
+                        self.arguments["options"]["do_cart"].total += 1
+                        self.arguments["options"]["do_cart"].value = True
+                        # print(f"Found code_artifact_domain in profile: {profile.name}. total: {self.arguments['options']['do_cart'].total}")
+
                     self.profiles[profile.name] = profile
             self.arguments["options"]["do_login"].total = len(self.profiles)
 

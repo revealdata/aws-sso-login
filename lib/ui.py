@@ -2,9 +2,8 @@ import sys
 import os
 import re
 import requests
-import json
 from PyQt6 import QtCore, QtGui
-from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess
+from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess, QIODevice
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel, QProgressBar
 from lib.icon import ICON
 from lib.classes import Initialize
@@ -37,7 +36,28 @@ class QCheckBoxOptions(QCheckBox):
         # Set the start button to enabled if any checkbox is checked.
         self.button.setEnabled(any_checked)
 
-    
+class QCheckBoxProfiles(QCheckBox):
+    def __init__(self, name, button, options):
+        super().__init__()
+        self.name = name
+        self.button = button
+        self.options = options
+        self.label = f"{self.name}"
+        self.setText(f"{self.label}")
+        self.setChecked(True)
+        self.stateChanged.connect(self.checkbox_changed)
+
+    def checkbox_changed(self, state):
+        """ Process the checkbox clicks. """
+        any_checked = False
+        for checkbox in self.options:
+            value = self.options[checkbox].isChecked()
+            any_checked = value or any_checked
+            self.options[checkbox].value = value
+
+        # Set the start button to enabled if any checkbox is checked.
+        self.button.setEnabled(any_checked)
+
 class QLineConfig(QLineEdit):
     def __init__(self, name, metadata, button=None, options=None, parent=None):
         super().__init__()
@@ -65,7 +85,7 @@ class QLineConfig(QLineEdit):
             version = re.match(self.metadata.verification["version"]["regex"], self.parent.capture)
             if not version or not self.parent.process.exitCode() == 0:
                 self.__toggle_checkbox__(False)
-        
+
         if "alive" in self.metadata.verification and self.metadata.value:
             args = self.metadata.verification["alive"]["args"].split(" ")
             self.parent.init_process(capture=True)
@@ -73,7 +93,7 @@ class QLineConfig(QLineEdit):
             self.parent.process.waitForFinished()
             if not self.parent.process.exitCode() == 0:
                 self.__toggle_checkbox__(False)
-    
+
     def __config_validate__(self, value=None):
         self.__toggle_checkbox__(os.path.isfile(value))
 
@@ -99,6 +119,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.kwargs = kwargs
         self.options = {}
+        self.aws_profiles = {}
         self.config = {}
         self.message_prefix = None
         self.message_postfix = None
@@ -122,12 +143,17 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(QSize(self.width, self.height))
         self.setWindowTitle(f"{self.app['description']}")
 
-        optionsgroup = QGroupBox("Login Options")
+        optionsgroup = QGroupBox("Login Services (Un-check to Disable)")
         optionsgroup.setFixedHeight(90)
         self.options_layout = QHBoxLayout()
         optionsgroup.setLayout(self.options_layout)
-        
-        configgroup = QGroupBox("Configuration")
+
+        profilesgroup = QGroupBox("AWS Profiles (Un-check to Disable)")
+        profilesgroup.setFixedHeight(90)
+        self.profiles_layout = QHBoxLayout()
+        profilesgroup.setLayout(self.profiles_layout)
+
+        configgroup = QGroupBox("Commands")
         self.config_layout = QHBoxLayout()
         configgroup.setLayout(self.config_layout)
 
@@ -135,7 +161,7 @@ class MainWindow(QMainWindow):
         output_layout = QVBoxLayout()
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setFontPointSize(16)
+        self.output.setFontPointSize(15)
         output_layout.addWidget(output_label)
         output_layout.addWidget(self.output)
 
@@ -149,14 +175,15 @@ class MainWindow(QMainWindow):
         self.buttongroup.addButton(self.button_cancel, 0)
         self.buttongroup.addButton(self.button_start, 1)
         self.buttongroup.setExclusive(True)
-        
+
         buttons_layout.addWidget(self.buttongroup.button(0))
         buttons_layout.addWidget(self.buttongroup.button(1))
 
-        self.layout.addWidget(optionsgroup, 0, 0,1,2)
-        self.layout.addWidget(configgroup, 1, 0,1,2)
-        self.layout.addLayout(output_layout, 2, 0, 1, 2)
-        self.layout.addLayout(buttons_layout, 3, 0, 1, 2)
+        self.layout.addWidget(optionsgroup, 0, 0, 1, 2)
+        self.layout.addWidget(profilesgroup, 1, 0, 1, 2)
+        self.layout.addWidget(configgroup, 2, 0, 1, 2)
+        self.layout.addLayout(output_layout, 3, 0, 1, 2)
+        self.layout.addLayout(buttons_layout, 4, 0, 1, 2)
         widget.setLayout(self.layout)
 
         self.statusbar = QStatusBar()
@@ -169,6 +196,7 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.statusbar)
 
         self.__load_ui_options__()
+        self.__load_ui_profiles__()
         self.__load_ui_config__()
         self.__show_messages__()
         self.__check_update__()
@@ -184,7 +212,7 @@ class MainWindow(QMainWindow):
             return False
         url = f"{self.app['url']}/releases/latest"
         try:
-            response = requests.get(url, timeout=5, verify=False, allow_redirects=True, headers={"Accept": "application/json"})
+            response = requests.get(url, timeout=5, verify=True, allow_redirects=True, headers={"Accept": "application/json"})
             if response.status_code == 200:
                 latest_version = response.json()["tag_name"]
                 version = re.search(r"v\d+\.\d+\.\d+", latest_version)
@@ -202,7 +230,7 @@ class MainWindow(QMainWindow):
                         self.message(f"New version available: {latest_version}")
                         self.message(f"Download: {self.app['url']}/releases/latest")
                         self.__statusbar_message__(f"New version available: {latest_version}", add_app_prefix=True)
-                        
+
                         return True
         except Exception as e:
             return False
@@ -220,8 +248,20 @@ class MainWindow(QMainWindow):
                 self.options[key].setEnabled(False)
                 self.options[key].setChecked(False)
             self.options[key].stateChanged.connect(self.checkbox_changed)
-            
+
             self.options_layout.addWidget(self.options[key])
+
+    def __load_ui_profiles__(self):
+        for name, profile in self.args.profiles.items():
+            self.aws_profiles[name] = QCheckBoxProfiles(
+                name=name,
+                button=self.button_start,
+                options=self.options,
+            )
+            self.aws_profiles[name].setToolTip(f"SSO Role: {profile.sso_role_name}")
+            self.aws_profiles[name].stateChanged.connect(self.checkbox_changed)
+
+            self.profiles_layout.addWidget(self.aws_profiles[name])
 
     def __load_ui_config__(self):
         for key, meta in self.args.arguments["cmd"].items():
@@ -234,7 +274,7 @@ class MainWindow(QMainWindow):
             )
             self.config_layout.addWidget(QLabel(f"{key}:"))
             self.config_layout.addWidget(self.config[key])
-            
+
 
     def button_clicked(self, button):
         """ Process the button clicks. """
@@ -254,7 +294,7 @@ class MainWindow(QMainWindow):
 
         # Set the start button to enabled if any checkbox is checked.
         self.buttongroup.button(1).setEnabled(any_checked)
-    
+
     def __show_messages__(self):
         for section in self.args.arguments:
             for arg in self.args.arguments[section]:
@@ -268,21 +308,24 @@ class MainWindow(QMainWindow):
         self.statusbar.clearMessage()
         progress_increment = int(100 / len(self.args.profiles))
         self.progressbar.show()
-        
+
         self.message("Starting Login and Authorization Process...")
-        
+
         # SSO Login
         if self.options["do_login"].isChecked():
             self.message("<strong>Begin AWS SSO Login. Please wait...</strong>")
             for name, profile in self.args.profiles.items():
-                if hasattr(profile, "sso_start_url") and profile.sso_start_url:
+                if not hasattr(profile, "sso_start_url") or not profile.sso_start_url:
+                    self.message(f"- [{name}]: SSO Start URL not found. Skipping...")
+                    continue
+                if self.aws_profiles[name].isChecked() and profile.enabled and profile.sso_role_name:
                     self.init_process()
                     self.message_prefix = f"- [{name}]: "
                     self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", ["--profile", f"{profile.name}", "--region", f"{profile.region}","sso", "login", '--no-cli-pager'])
                     self.process.waitForFinished()
                     self.message_prefix = None
                     self.progressbar.setValue(self.progressbar.value() + 1)
-                    
+
                 self.progressbar.setValue( self.progressbar.value() + progress_increment)
             self.progressbar.setValue(0)
             self.message("AWS SSO Login Completed.<br/>")
@@ -291,7 +334,10 @@ class MainWindow(QMainWindow):
         if self.options["do_ecr"].isChecked():
             self.message("<strong>Begin ECR Login. Please wait...</strong>")
             for name, profile in self.args.profiles.items():
-                if hasattr(profile, "sso_account_id") and profile.sso_account_id:
+                if not hasattr(profile, "sso_account_id") or not profile.sso_account_id:
+                    self.message(f"Profile [{name}] does not have a valid SSO Account ID. Skipping...")
+                    continue
+                if self.aws_profiles[name].isChecked() and profile.enabled and profile.sso_role_name:
                     self.init_process(True)
                     self.message_prefix = f"- [{name}]: "
                     self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", [
@@ -311,7 +357,7 @@ class MainWindow(QMainWindow):
                             "login",
                             "--username",
                             "AWS",
-                            "--password", f"{profile.ecr_password}", 
+                            "--password", f"{profile.ecr_password}",
                             f"{profile.sso_account_id}.dkr.ecr.{profile.region}.amazonaws.com"
                             ]
                         )
@@ -330,7 +376,7 @@ class MainWindow(QMainWindow):
         if self.options["do_eks"].isChecked():
             self.message("<strong>Begin kubectl Authorization. Please wait...</strong>")
             for name, kubeconfig in self.args.kube_configs.items():
-                if kubeconfig.aws_profile and kubeconfig.enable:
+                if self.aws_profiles[kubeconfig.aws_profile.name].isChecked() and kubeconfig.aws_profile and kubeconfig.enable:
                     # self.message(f"\n<br/><strong>[Kubeconfig: {name}]</strong>")
                     self.message_prefix = f"- [{name}]: "
                     self.init_process()
@@ -363,6 +409,38 @@ class MainWindow(QMainWindow):
 
                 self.progressbar.setValue( self.progressbar.value() + progress_increment)
             self.message("AWS EKS Authorization Completed.<br/>")
+
+        if self.options["do_cart"].isChecked():
+            self.message("<strong>Begin AWS CodeArtifact Authorization Token. Please wait...</strong>")
+            for name, profile in self.args.profiles.items():
+                if not profile.code_artifact_domain:
+                    continue
+                self.init_process(capture=True)
+                self.message_prefix = f"- [{name}]: "
+                self.call_program(f"{self.args.arguments['cmd']['awscli'].value}",
+                                  [
+                                        "--profile", f"{profile.name}",
+                                        "codeartifact", "get-authorization-token",
+                                        '--domain', f'{profile.code_artifact_domain}',
+                                        '--domain-owner', f'{profile.sso_account_id}',
+                                        '--region', f"{profile.region}",
+                                        '--query', 'authorizationToken',
+                                        '--output', 'text'
+                                    ]
+                                  )
+                self.process.waitForFinished()
+                self.message_prefix = None
+                self.progressbar.setValue(self.progressbar.value() + 1)
+                self.message("------------------------------------------------------------------------<br/>")
+                self.message("-------------------------[ CodeArtifact Token ]-------------------------<br/>")
+                self.message(f"export CODEARTIFACT_AUTH_TOKEN='{self.capture}'")
+                self.message("---------------------------------------------------------------------<br/>")
+            self.message("HELP: Use the CodeArtifact token environment variable above to authenticate with CodeArtifact.<br/>")
+            self.message("https://brainspace.atlassian.net/wiki/spaces/BD/pages/2540765185/AWS+CodeArtifact<br/>")
+
+            self.progressbar.setValue(self.progressbar.value() + progress_increment)
+            self.progressbar.setValue(0)
+            self.message("AWS CodeCommit Authenticate Token Completed.<br/>")
 
         self.__statusbar_message__(f"Completed", add_app_prefix=True)
         self.button_start.setEnabled(True)
@@ -411,10 +489,10 @@ class MainWindow(QMainWindow):
         data = self.process.readAllStandardOutput()
         stdout = bytes(data).decode("utf8")
         self.message(stdout)
-    
+
     def handle_stdout_capture(self):
         data = self.process.readAllStandardOutput()
-        stdout = bytes(data).decode("utf8")
+        stdout = bytes(data).decode("utf8").strip()
         self.capture = stdout
         return stdout
 

@@ -7,6 +7,7 @@ The AWS Login manager simplifies session management for AWS SSO.
 - Allows you to login to multiple AWS SSO accounts and roles with a single command.
 - Optionally authorize docker with AWS credentials for each AWS profile using AWS SSO.
 - Optionally Authorize kubeconfig for EKS with AWS credentials for each AWS profile using AWS SSO.
+- Optionally authorize a CodeArtifact domain with AWS credentials for each AWS profile using AWS SSO.
 
 ## [Releases](https://github.com/revealdata/aws-sso-login/releases/latest)
 Each release version builds a portable executable for each of the following operaing systems
@@ -51,6 +52,27 @@ The script will attempt to locate the following configuration files in your path
 - `${HOME}/.aws/config` (AWS CLI configuration)
 - `${HOME}/.eks_auth` (EKS configuration - See **EKS Configuration** below)
 
+### AWS CLI Configuration
+The AWS CLI configuration fields are mostly standard and should not be modified unless you know what you are doing.
+The following fields can be added specifically for `aws-sso-login`:
+ - `aws_sso_login`: (true|false). If set to false, the profile will be ignored by `aws-sso-login`.If this field does not
+    exist, then the profile will be considered enabled.
+   - example:  `aws_sso_login = false`
+ - `code_artifact_domain`: If a CodeArtifact domain names is set, The option of getting a CodeArtifact authorization token will be enabled. 
+    The token must be copied into a terminal session and used as a variable in commands that use CodeArtifact (`pip`, `npm`, `maven`, etc.)
+   - example: `code_artifact_domain = my-codeartifact-domain`
+ 
+ The following is an example AWS CLI configuration section:
+```ini
+[profile default]
+sso_start_url = https://my-sso-domain.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 083387868364
+sso_role_name = Department-Dev
+code_artifact_domain = my-codeartifact-domain
+region = us-east-1
+output = json
+```
 
 ### EKS Configuration
 This script utilizes a configuration file to specify the EKS clusters and roles to authorize. The configuration file is `ini` format similar to the AWS CLI configuration file. 
@@ -64,12 +86,12 @@ Each section of the configuration file represents a cluster. The section name is
  - `KUBE_CONFIG`: (optional) The path to the kubeconfig file to update. If not specified, the default kubeconfig file will be used.
 
 The following is an example cluster configuration section:
-```
+```ini
 [prod-us]
 ENABLE=true
 EKS_CLUSTER=prod-eks-cluster-name
 AWS_PROFILE=default
 AWS_REGION=us-east-1
-ROLE=kubernetes-admins-access
+ROLE=Department-Dev
 KUBE_CONFIG=~/.kube/config.prod
 ```
