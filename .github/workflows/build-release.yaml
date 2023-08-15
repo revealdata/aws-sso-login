@@ -43,8 +43,8 @@ jobs:
                 ls -laR
             OUT_FILE_NAME: aws-sso-login-linux-amd64.zip
             ASSET_MIME: application/zip
-          - os: [macOS-latest, x64]
-            TARGET: "macos (x64)"
+          - os: [macos-latest]
+            TARGET: macos
             CMD_BUILD: >
                 set -x &&
                 uname -a &&
