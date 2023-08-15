@@ -48,7 +48,7 @@ jobs:
             CMD_BUILD: >
                 set -x &&
                 uname -a &&
-                pyinstaller --noconfirm aws-sso-login.spec  &&
+                pyinstaller --clean --noconfirm aws-sso-login.spec  &&
                 cp ./resources/aws_identity_center.png ./dist/aws-sso-login.app/Contents/Resources/ &&
                 cp ./README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
                 brew install create-dmg &&
