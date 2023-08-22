@@ -53,7 +53,9 @@ jobs:
                 cp ./README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
                 brew install create-dmg &&
                 create-dmg --volname "AWS SSO Login Installer"
+                --volname "AWS SSO Login Installer"
                 --volicon "resources/aws_identity_center.icns"
+                --hdiutil-quiet
                 --background "resources/installer_background.png"
                 --window-size 480 440
                 --window-pos 400 420
