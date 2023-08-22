@@ -52,5 +52,5 @@ app = BUNDLE(
     name='aws-sso-login.app',
     icon='./resources/aws_identity_center.icns',
     bundle_identifier='com.revealdata.awsssologin',
-    version='1.2.3'
+    version='1.2.4'
 )

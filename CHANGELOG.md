@@ -1,3 +1,7 @@
+## Version 1.2.4
+  - Enable/Disable AWS SSO Profiles
+  - CodeArtifact Token Support
+
 ## Version 1.2.3
   - Fix AWS SSO Profile Count
 

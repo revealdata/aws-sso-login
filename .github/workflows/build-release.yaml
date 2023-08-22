@@ -43,17 +43,19 @@ jobs:
                 ls -laR
             OUT_FILE_NAME: aws-sso-login-linux-amd64.zip
             ASSET_MIME: application/zip
-          - os: [macOS-latest, x64]
-            TARGET: "macos (x64)"
+          - os: [macos-latest]
+            TARGET: macos
             CMD_BUILD: >
                 set -x &&
                 uname -a &&
-                pyinstaller --noconfirm aws-sso-login.spec  &&
+                pyinstaller --clean --noconfirm aws-sso-login.spec  &&
                 cp ./resources/aws_identity_center.png ./dist/aws-sso-login.app/Contents/Resources/ &&
                 cp ./README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
                 brew install create-dmg &&
                 create-dmg --volname "AWS SSO Login Installer"
+                --volname "AWS SSO Login Installer"
                 --volicon "resources/aws_identity_center.icns"
+                --hdiutil-quiet
                 --background "resources/installer_background.png"
                 --window-size 480 440
                 --window-pos 400 420
