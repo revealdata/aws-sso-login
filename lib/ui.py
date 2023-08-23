@@ -372,8 +372,8 @@ class MainWindow(QMainWindow):
 
         # Kubectl Login
         self.progressbar.setValue(0)
-        progress_increment = int(100 / len(self.args.kube_configs))
         if self.options["do_eks"].isChecked():
+            progress_increment = int(100 / len(self.args.kube_configs))
             self.message("<strong>Begin kubectl Authorization. Please wait...</strong>")
             for name, kubeconfig in self.args.kube_configs.items():
                 if self.aws_profiles[kubeconfig.aws_profile.name].isChecked() and kubeconfig.aws_profile and kubeconfig.enable:
