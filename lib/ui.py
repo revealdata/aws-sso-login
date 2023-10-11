@@ -1,12 +1,13 @@
 import sys
 import os
 import re
+import time
 import requests
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess, QIODevice
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel, QProgressBar
 from lib.icon import ICON
-from lib.classes import Initialize
+from lib.classes import Initialize, EnvCodeArtifactToken
 
 QApp = QApplication(sys.argv)
 Icon = ICON("aws_identity_center.png")
@@ -129,6 +130,9 @@ class MainWindow(QMainWindow):
         self.height = 800
         self.width = 740
         self.layout = QGridLayout()
+        self.process = None
+        self.pstate = None
+        self.pstatus = None
 
         pixmap = QtGui.QPixmap()
         if Icon.base64:
@@ -157,8 +161,16 @@ class MainWindow(QMainWindow):
         self.config_layout = QHBoxLayout()
         configgroup.setLayout(self.config_layout)
 
-        output_label = QLabel("Output")
+        pstatus_layout = QHBoxLayout()
+        pstatus_label = QLabel("Sub-process Status:")
+        self.pstatus = QLineEdit()
+        self.pstatus.setReadOnly(True)
+        self.pstatus.setStyleSheet("background-color: #333333; color: #FFFFFF; border: none;")
+        pstatus_layout.addWidget(pstatus_label)
+        pstatus_layout.addWidget(self.pstatus)
+
         output_layout = QVBoxLayout()
+        output_label = QLabel("Output")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
         self.output.setFontPointSize(15)
@@ -182,8 +194,9 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(optionsgroup, 0, 0, 1, 2)
         self.layout.addWidget(profilesgroup, 1, 0, 1, 2)
         self.layout.addWidget(configgroup, 2, 0, 1, 2)
-        self.layout.addLayout(output_layout, 3, 0, 1, 2)
-        self.layout.addLayout(buttons_layout, 4, 0, 1, 2)
+        self.layout.addLayout(pstatus_layout, 3, 0, 1, 2)
+        self.layout.addLayout(output_layout, 4, 0, 1, 2)
+        self.layout.addLayout(buttons_layout, 5, 0, 1, 2)
         widget.setLayout(self.layout)
 
         self.statusbar = QStatusBar()
@@ -313,20 +326,37 @@ class MainWindow(QMainWindow):
 
         # SSO Login
         if self.options["do_login"].isChecked():
-            self.message("<strong>Begin AWS SSO Login. Please wait...</strong>")
             for name, profile in self.args.profiles.items():
                 if not hasattr(profile, "sso_start_url") or not profile.sso_start_url:
                     self.message(f"- [{name}]: SSO Start URL not found. Skipping...")
                     continue
                 if self.aws_profiles[name].isChecked() and profile.enabled and profile.sso_role_name:
-                    self.init_process()
-                    self.message_prefix = f"- [{name}]: "
-                    self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", ["--profile", f"{profile.name}", "--region", f"{profile.region}","sso", "login", '--no-cli-pager'])
+                    self.message("------------------------------------------------------------------------------")
+                    self.message(f"Logging into AWS SSO for profile: {name}")
+                    self.message("------------------------------------------------------------------------------")
+                    self.init_process(ready_read=True)
+                    self.call_program(
+                        command=f"{self.args.arguments['cmd']['awscli'].value}",
+                        args=[
+                            "--profile", f"{profile.name}",
+                            "--region", f"{profile.region}","sso",
+                            "login",
+                            '--no-cli-pager', '--no-paginate',
+                            '--cli-read-timeout', '120',
+                            '--no-cli-auto-prompt',
+                            '--color', 'off',
+                            '--output', 'text'
+                        ]
+                    )
+                    self.process.waitForStarted()
+                    self.handle_stdout_wait()
                     self.process.waitForFinished()
-                    self.message_prefix = None
+                    self.message("------------------------------------------------------------------------------<br/>")
                     self.progressbar.setValue(self.progressbar.value() + 1)
 
                 self.progressbar.setValue( self.progressbar.value() + progress_increment)
+                self.output.clear()
+                self.message(f"AWS SSO Login Completed for profile: {name}")
             self.progressbar.setValue(0)
             self.message("AWS SSO Login Completed.<br/>")
 
@@ -338,7 +368,7 @@ class MainWindow(QMainWindow):
                     self.message(f"Profile [{name}] does not have a valid SSO Account ID. Skipping...")
                     continue
                 if self.aws_profiles[name].isChecked() and profile.enabled and profile.sso_role_name:
-                    self.init_process(True)
+                    self.init_process(capture=True)
                     self.message_prefix = f"- [{name}]: "
                     self.call_program(f"{self.args.arguments['cmd']['awscli'].value}", [
                         "--profile", f"{profile.name}",
@@ -352,8 +382,10 @@ class MainWindow(QMainWindow):
                         profile.ecr_password = self.capture
                         self.capture = None
                     if profile.ecr_password:
+                        self.init_process(capture=False, drop_stderr=True)
                         self.call_program(
                             f"{self.args.arguments['cmd']['docker'].value}", [
+                            "--log-level", "error",
                             "login",
                             "--username",
                             "AWS",
@@ -433,8 +465,12 @@ class MainWindow(QMainWindow):
                 self.progressbar.setValue(self.progressbar.value() + 1)
                 self.message("------------------------------------------------------------------------<br/>")
                 self.message("-------------------------[ CodeArtifact Token ]-------------------------<br/>")
+                self.message(f"export CODEARTIFACT_DOMAIN='{profile.code_artifact_domain}'")
                 self.message(f"export CODEARTIFACT_AUTH_TOKEN='{self.capture}'")
                 self.message("---------------------------------------------------------------------<br/>")
+                env_update = EnvCodeArtifactToken(self.capture, profile.code_artifact_domain, profile.code_artifact_env_file)
+                if env_update.written:
+                    self.message(f"CodeArtifact Token Environment Variables Updated in user profile.<br/>File: {env_update.shell_rc}<br/>")
             self.message("HELP: Use the CodeArtifact token environment variable above to authenticate with CodeArtifact.<br/>")
             self.message("https://brainspace.atlassian.net/wiki/spaces/BD/pages/2540765185/AWS+CodeArtifact<br/>")
 
@@ -446,39 +482,54 @@ class MainWindow(QMainWindow):
         self.button_start.setEnabled(True)
         self.progressbar.hide()
 
-    def init_process(self, capture=False):
+    def init_process(self, capture=False, ready_read=False, drop_stderr=False):
+        self.process = None
         self.process = QtCore.QProcess(self)
-        # self.process.readyRead.connect(self.data_ready)
+        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        self.process.setReadChannel(QProcess.ProcessChannel.StandardOutput)
+        if ready_read:
+            self.process.readyRead.connect(self.data_ready)
         if capture:
             self.process.readyReadStandardOutput.connect(self.handle_stdout_capture)
         else:
             self.process.readyReadStandardOutput.connect(self.handle_stdout)
-        self.process.readyReadStandardError.connect(self.handle_stderr)
+        if not drop_stderr:
+            self.process.readyReadStandardError.connect(self.handle_stderr)
         self.process.finished.connect(self.process_finished)
         self.process.started.connect(self.process_started)
+        self.process.stateChanged.connect(self.handle_state)
 
     def data_ready(self):
         cursor = self.output.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
 
         # Decode the QByteArray
-        cursor.insertText(
-            str(self.process.readAll().data().decode()))
-        self.output.ensureCursorVisible()
+        time.sleep(0.5)
+        # print("Reading data...")
+        data = self.process.readAll()
+        stdout = bytes(data).decode("utf8").strip()
+        self.message(stdout)
 
-    def call_program(self, command, args=[]):
+    def call_program(self, command, args=[], detached=False):
         # run the process
         # `start` takes the exec and a list of arguments
-        self.process.start(command, args)
+        if detached:
+            self.process.startDetached(command, args)
+        else:
+            self.process.start(command, args)
 
-    def message(self, message, prefix="", postfix=""):
+    def message(self, message):
+        message = str(message.strip())
         if self.message_prefix:
-            prefix = self.message_prefix
+            message = f"{self.message_prefix}{message}"
         if self.message_postfix:
-            postfix = self.message_postfix
+            message = f"{message}{self.message_postfix}"
 
-        self.output.append(f"{prefix}{message.strip()}{postfix}")
+        self.output.append(f"{message}")
+        # print(f"{message}")
+        self.output.ensureCursorVisible()
         QApp.processEvents()
+        return True
 
     def handle_stderr(self):
         data = self.process.readAllStandardError()
@@ -486,8 +537,16 @@ class MainWindow(QMainWindow):
         self.message(stderr)
 
     def handle_stdout(self):
+        stdout = None
         data = self.process.readAllStandardOutput()
-        stdout = bytes(data).decode("utf8")
+        stdout = bytes(data).decode("utf8").strip()
+        self.message(stdout)
+
+    def handle_stdout_wait(self):
+        self.process.waitForStarted()
+        self.process.waitForBytesWritten()
+        data = self.process.readAllStandardOutput()
+        stdout = bytes(data).decode("utf8").strip()
         self.message(stdout)
 
     def handle_stdout_capture(self):
@@ -496,10 +555,21 @@ class MainWindow(QMainWindow):
         self.capture = stdout
         return stdout
 
+    def handle_state(self, state):
+        states = {
+            QProcess.ProcessState.NotRunning: 'Not running',
+            QProcess.ProcessState.Starting: 'Starting',
+            QProcess.ProcessState.Running: 'Running',
+        }
+        state_name = states[state]
+        if self.pstatus:
+            # print(f"Setting Status: {state_name}")
+            self.pstatus.setText(state_name)
+        self.pstate = state_name
     def process_started(self):
         pass
 
     def process_finished(self):
         if self.process.exitCode() != 0:
             self.message(f"Process Failed. Reason: {self.process.errorString()}")
-        self.process.close()
+        # self.process.close()

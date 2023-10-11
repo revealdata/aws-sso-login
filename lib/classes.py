@@ -1,5 +1,6 @@
 import os
 import platform
+import fileinput
 from pathlib import Path
 from configparser import ConfigParser
 
@@ -35,12 +36,14 @@ class AwsProfile():
             'sso_account_id',
             'sso_role_name',
             'sso_start_url',
-            'code_artifact_domain'
+            'code_artifact_domain',
+            'code_artifact_env_file'
         )
         self.section = section
         self.ecr_password = None
         self.enabled = True
         self.code_artifact_domain = None
+        self.code_artifact_env_file = None
         aws_sso_login = self.__get_config_attribute__(aws_config, "aws_sso_login")
         if aws_sso_login:
             self.enabled = self.__str_to_bool__(aws_sso_login)
@@ -191,3 +194,65 @@ class Initialize():
                 self.arguments["config"]["eks"]["errors"].append("[ERROR] Error creating EKS config file: {}".format(e))
                 self.arguments["config"]["eks"].enabled = False
                 return False
+
+class EnvCodeArtifactToken():
+    def __init__(self, token, domain, env_file=None):
+        self.var_name_token = 'CODEARTIFACT_AUTH_TOKEN'
+        self.var_name_domain = 'CODEARTIFACT_DOMAIN'
+        self.var_header = '# CodeArtifact Token'
+        self.var_footer = '# End CodeArtifact Token'
+        self.env_file_override = False
+        self.written = False
+        if not env_file:
+            self.shell_rc = f"{Path.home()}{os.sep}.{os.environ['SHELL'].split('/')[-1]}rc"
+        else:
+            if os.path.isdir(os.path.dirname(os.path.realpath(env_file))):
+                self.env_file_override = True
+                self.shell_rc = os.path.realpath(env_file)
+        self.token = token
+        self.domain = domain
+
+        if os.path.isfile(self.shell_rc) or self.env_file_override:
+            self.written = self.__write_token__()
+
+    def __write_token__(self):
+        """ Write the token to the shell rc file """
+        # If the file does not exist, create it
+        if not os.path.isfile(self.shell_rc):
+            # print(f"Creating {self.shell_rc}")
+            with open(self.shell_rc, 'w') as f:
+                f.write(f"{self.var_header}\n")
+                f.write(f"export {self.var_name_domain}='{self.domain}'\n")
+                f.write(f"export {self.var_name_token}='{self.token}'\n")
+                f.write(f"{self.var_footer}\n")
+            return True
+        else:
+            # If the file exists, check if the token is already in the file
+            replace = False
+            with open(self.shell_rc, 'r') as f:
+                if self.var_header in f.read():
+                    replace = True
+            if replace:
+                # Replace the existing token
+                # print(f"Replacing token in {self.shell_rc}")
+                for line in fileinput.input(self.shell_rc, inplace=True):
+                    if self.var_header in line:
+                        print(line, end='')
+                    elif self.var_name_token in line:
+                        print(f"export {self.var_name_token}='{self.token}'")
+                    elif self.var_name_domain in line:
+                        print(f"export {self.var_name_domain}='{self.domain}'")
+                    elif self.var_footer in line:
+                        print(line, end='')
+                    else:
+                        print(line, end='')
+                return True
+            else:
+                # Append the token to the file
+                # print(f"Appending token to {self.shell_rc}")
+                with open(self.shell_rc, 'a') as f:
+                    f.write(f"\n{self.var_header}\n")
+                    f.write(f"export {self.var_name_domain}='{self.domain}'\n")
+                    f.write(f"export {self.var_name_token}='{self.token}'\n")
+                    f.write(f"{self.var_footer}\n")
+                return True
