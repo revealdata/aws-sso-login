@@ -1,8 +1,8 @@
 import sys
 import os
 import re
-import time
 import requests
+from time import sleep
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import QSize, Qt, QByteArray, QProcess, QIODevice
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QButtonGroup ,QGridLayout, QCheckBox, QStatusBar, QLineEdit, QTextEdit, QLabel, QProgressBar
@@ -355,7 +355,7 @@ class MainWindow(QMainWindow):
                     self.progressbar.setValue(self.progressbar.value() + 1)
 
                 self.progressbar.setValue( self.progressbar.value() + progress_increment)
-                self.output.clear()
+                # self.output.clear()
                 self.message(f"AWS SSO Login Completed for profile: {name}")
             self.progressbar.setValue(0)
             self.message("AWS SSO Login Completed.<br/>")
@@ -504,7 +504,7 @@ class MainWindow(QMainWindow):
         cursor.movePosition(cursor.MoveOperation.End)
 
         # Decode the QByteArray
-        time.sleep(0.5)
+        sleep(0.5)
         # print("Reading data...")
         data = self.process.readAll()
         stdout = bytes(data).decode("utf8").strip()
