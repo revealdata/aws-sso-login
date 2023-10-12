@@ -195,35 +195,64 @@ class Initialize():
                 self.arguments["config"]["eks"].enabled = False
                 return False
 
+
 class EnvCodeArtifactToken():
     def __init__(self, token, domain, env_file=None):
-        self.var_name_token = 'CODEARTIFACT_AUTH_TOKEN'
-        self.var_name_domain = 'CODEARTIFACT_DOMAIN'
         self.var_header = '# CodeArtifact Token'
         self.var_footer = '# End CodeArtifact Token'
+        self.var_domain = ['CODEARTIFACT_DOMAIN', domain]
+        self.var_token = ['CODEARTIFACT_AUTH_TOKEN', token]
+        self.shell_rc = None
+        self.env_content = None
         self.env_file_override = False
         self.written = False
-        if not env_file:
+        self.is_ps = True if "WINDIR" in os.environ.keys() else False
+
+        # Create a default env file path if not specified in the profile
+        if not env_file and "SHELL" in os.environ.keys():
+            # Create a default env file path for Linux/MacOS
             self.shell_rc = f"{Path.home()}{os.sep}.{os.environ['SHELL'].split('/')[-1]}rc"
+        elif not env_file and self.is_ps:
+            self.is_ps = True
+            # Create a default env file path for Windows
+            pspaths = os.environ.get('PSMODULEPATH').split(';')
+            for pspath in pspaths:
+                if os.environ.get('HOMEPATH') in pspath:
+                    self.shell_rc = pspath.replace('Modules', 'Microsoft.PowerShell_profile.ps1')
+                    break
         else:
             if os.path.isdir(os.path.dirname(os.path.realpath(env_file))):
                 self.env_file_override = True
                 self.shell_rc = os.path.realpath(env_file)
-        self.token = token
-        self.domain = domain
 
-        if os.path.isfile(self.shell_rc) or self.env_file_override:
+        if self.shell_rc:
             self.written = self.__write_token__()
+
+    def __format_env_line__(self, env_data: list):
+        """ Format the environment variable line """
+        if not isinstance(env_data, list) or len(env_data) < 2:
+            return None
+
+        if not self.is_ps:
+            return f"export {env_data[0]}='{env_data[1]}'"
+        else:
+            return f"$env:{env_data[0]} = '{env_data[1]}'"
 
     def __write_token__(self):
         """ Write the token to the shell rc file """
+        # Generate the variable set lines
+        var_domain = self.__format_env_line__(self.var_domain)
+        var_token = self.__format_env_line__(self.var_token)
+        # print(f"domain: {var_domain}")
+        # print(f"token: {var_token}")
+
         # If the file does not exist, create it
         if not os.path.isfile(self.shell_rc):
             # print(f"Creating {self.shell_rc}")
             with open(self.shell_rc, 'w') as f:
                 f.write(f"{self.var_header}\n")
-                f.write(f"export {self.var_name_domain}='{self.domain}'\n")
-                f.write(f"export {self.var_name_token}='{self.token}'\n")
+                f.write(f"{var_domain}\n")
+                f.write(f"{var_token}\n")
                 f.write(f"{self.var_footer}\n")
             return True
         else:
@@ -237,13 +266,13 @@ class EnvCodeArtifactToken():
                 # print(f"Replacing token in {self.shell_rc}")
                 for line in fileinput.input(self.shell_rc, inplace=True):
                     if self.var_header in line:
-                        print(line, end='')
-                    elif self.var_name_token in line:
-                        print(f"export {self.var_name_token}='{self.token}'")
-                    elif self.var_name_domain in line:
-                        print(f"export {self.var_name_domain}='{self.domain}'")
+                        print(self.var_header, end='\n')
+                    elif self.var_domain[0] in line:
+                        print(var_domain)
+                    elif self.var_token[0] in line:
+                        print(var_token)
                     elif self.var_footer in line:
-                        print(line, end='')
+                        print(self.var_footer, end='\n')
                     else:
                         print(line, end='')
                 return True
@@ -252,7 +281,7 @@ class EnvCodeArtifactToken():
                 # print(f"Appending token to {self.shell_rc}")
                 with open(self.shell_rc, 'a') as f:
                     f.write(f"\n{self.var_header}\n")
-                    f.write(f"export {self.var_name_domain}='{self.domain}'\n")
-                    f.write(f"export {self.var_name_token}='{self.token}'\n")
+                    f.write(f"{var_domain}\n")
+                    f.write(f"{var_token}\n")
                     f.write(f"{self.var_footer}\n")
                 return True
