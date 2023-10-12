@@ -4,6 +4,10 @@ xattr -d com.apple.quarantine /Applications/aws-sso-login.app
 ```
 
 ## Releases
+### Version  v1.2.5
+  - SSO Login verification is displayed
+  - CodeArtifact Token to shell startup (ex: bashrc)
+
 ### Version 1.2.4
   - Enable/Disable AWS SSO Profiles
   - CodeArtifact Token Support

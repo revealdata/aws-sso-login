@@ -1,5 +1,6 @@
 import os
 import platform
+import fileinput
 from pathlib import Path
 from configparser import ConfigParser
 
@@ -35,12 +36,14 @@ class AwsProfile():
             'sso_account_id',
             'sso_role_name',
             'sso_start_url',
-            'code_artifact_domain'
+            'code_artifact_domain',
+            'code_artifact_env_file'
         )
         self.section = section
         self.ecr_password = None
         self.enabled = True
         self.code_artifact_domain = None
+        self.code_artifact_env_file = None
         aws_sso_login = self.__get_config_attribute__(aws_config, "aws_sso_login")
         if aws_sso_login:
             self.enabled = self.__str_to_bool__(aws_sso_login)
@@ -191,3 +194,94 @@ class Initialize():
                 self.arguments["config"]["eks"]["errors"].append("[ERROR] Error creating EKS config file: {}".format(e))
                 self.arguments["config"]["eks"].enabled = False
                 return False
+
+
+class EnvCodeArtifactToken():
+    def __init__(self, token, domain, env_file=None):
+        self.var_header = '# CodeArtifact Token'
+        self.var_footer = '# End CodeArtifact Token'
+        self.var_domain = ['CODEARTIFACT_DOMAIN', domain]
+        self.var_token = ['CODEARTIFACT_AUTH_TOKEN', token]
+        self.shell_rc = None
+        self.env_content = None
+        self.env_file_override = False
+        self.written = False
+        self.is_ps = True if "WINDIR" in os.environ.keys() else False
+
+        # Create a default env file path if not specified in the profile
+        if not env_file and "SHELL" in os.environ.keys():
+            # Create a default env file path for Linux/MacOS
+            self.shell_rc = f"{Path.home()}{os.sep}.{os.environ['SHELL'].split('/')[-1]}rc"
+        elif not env_file and self.is_ps:
+            self.is_ps = True
+            # Create a default env file path for Windows
+            pspaths = os.environ.get('PSMODULEPATH').split(';')
+            for pspath in pspaths:
+                if os.environ.get('HOMEPATH') in pspath:
+                    self.shell_rc = pspath.replace('Modules', 'Microsoft.PowerShell_profile.ps1')
+                    break
+        else:
+            if os.path.isdir(os.path.dirname(os.path.realpath(env_file))):
+                self.env_file_override = True
+                self.shell_rc = os.path.realpath(env_file)
+
+        if self.shell_rc:
+            self.written = self.__write_token__()
+
+    def __format_env_line__(self, env_data: list):
+        """ Format the environment variable line """
+        if not isinstance(env_data, list) or len(env_data) < 2:
+            return None
+
+        if not self.is_ps:
+            return f"export {env_data[0]}='{env_data[1]}'"
+        else:
+            return f"$env:{env_data[0]} = '{env_data[1]}'"
+
+    def __write_token__(self):
+        """ Write the token to the shell rc file """
+        # Generate the variable set lines
+        var_domain = self.__format_env_line__(self.var_domain)
+        var_token = self.__format_env_line__(self.var_token)
+        # print(f"domain: {var_domain}")
+        # print(f"token: {var_token}")
+
+        # If the file does not exist, create it
+        if not os.path.isfile(self.shell_rc):
+            # print(f"Creating {self.shell_rc}")
+            with open(self.shell_rc, 'w') as f:
+                f.write(f"{self.var_header}\n")
+                f.write(f"{var_domain}\n")
+                f.write(f"{var_token}\n")
+                f.write(f"{self.var_footer}\n")
+            return True
+        else:
+            # If the file exists, check if the token is already in the file
+            replace = False
+            with open(self.shell_rc, 'r') as f:
+                if self.var_header in f.read():
+                    replace = True
+            if replace:
+                # Replace the existing token
+                # print(f"Replacing token in {self.shell_rc}")
+                for line in fileinput.input(self.shell_rc, inplace=True):
+                    if self.var_header in line:
+                        print(self.var_header, end='\n')
+                    elif self.var_domain[0] in line:
+                        print(var_domain)
+                    elif self.var_token[0] in line:
+                        print(var_token)
+                    elif self.var_footer in line:
+                        print(self.var_footer, end='\n')
+                    else:
+                        print(line, end='')
+                return True
+            else:
+                # Append the token to the file
+                # print(f"Appending token to {self.shell_rc}")
+                with open(self.shell_rc, 'a') as f:
+                    f.write(f"\n{self.var_header}\n")
+                    f.write(f"{var_domain}\n")
+                    f.write(f"{var_token}\n")
+                    f.write(f"{self.var_footer}\n")
+                return True
