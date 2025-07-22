@@ -4,6 +4,10 @@ xattr -d com.apple.quarantine /Applications/aws-sso-login.app
 ```
 
 ## Releases
+### Version  v1.2.7
+  - Add EKS Parameter: AWS_PARTITION (support GOV cloud)
+### Version v1.2.6
+  - Added support for arm64 platform
 ### Version  v1.2.5
   - SSO Login verification is displayed
   - CodeArtifact Token to shell startup (ex: bashrc)

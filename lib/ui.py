@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import platform
 import requests
 from time import sleep
 from PyQt6 import QtCore, QtGui
@@ -213,7 +214,8 @@ class MainWindow(QMainWindow):
         self.__load_ui_config__()
         self.__show_messages__()
         self.__check_update__()
-        self.__statusbar_message__(f"AWS Profiles: {len(self.args.profiles)} | EKS Profiles: {len(self.args.kube_configs)}", 0)
+        platform_name = platform.system().lower()
+        self.__statusbar_message__(f"Platform: {platform_name} | AWS Profiles: {len(self.args.profiles)} | EKS Profiles: {len(self.args.kube_configs)}", 0)
 
     def __statusbar_message__(self, message, timeout=0, add_app_prefix=True, prefix="", postfix=""):
         prefix = f"{self.app['name']} v{self.app['version']} | " if add_app_prefix else str(prefix)
@@ -430,7 +432,7 @@ class MainWindow(QMainWindow):
                         ]
                     # Add a role if specified
                     if hasattr(kubeconfig, "role"):
-                        args.extend(["--role-arn", f"arn:aws:iam::{kubeconfig.aws_profile.sso_account_id}:role/{kubeconfig.eks_cluster}-{kubeconfig.role}"])
+                        args.extend(["--role-arn", f"arn:{kubeconfig.aws_partition}:iam::{kubeconfig.aws_profile.sso_account_id}:role/{kubeconfig.eks_cluster}-{kubeconfig.role}"])
                     # Add a specific kube config file if specified
                     if hasattr(kubeconfig, "kube_config"):
                         args.extend(["--kubeconfig", f"{kubeconfig.kube_config}"])

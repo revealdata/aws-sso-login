@@ -1,4 +1,7 @@
 import os
+import sys
+import subprocess
+import shlex
 import platform
 import fileinput
 from pathlib import Path
@@ -26,7 +29,7 @@ class Argument():
         self.verification = verification
         self.errors = []
 
-class AwsProfile():
+class AwsProfile:
     def __init__(self, aws_config, section):
         self.config_attrs = (
             'region',
@@ -64,11 +67,12 @@ class AwsProfile():
         except Exception:
             return None
 
-class KubeConfig():
+class KubeConfig:
     def __init__(self, eks_config, section):
-        self.config_attrs = ('ENABLE', 'AWS_REGION', 'EKS_CLUSTER', 'AWS_PROFILE', 'ROLE', 'KUBE_CONFIG')
+        self.config_attrs = ('ENABLE', 'AWS_REGION', 'EKS_CLUSTER', 'AWS_PROFILE', 'AWS_PARTITION', 'ROLE', 'KUBE_CONFIG')
         self.context = section
         self.aws_profile = None
+        self.aws_partition = "aws"
         self.enable = False
         self.kube_config = f"{Path.home()}{os.sep}.kube{os.sep}config"
         # Load the aws config attributes
@@ -97,7 +101,7 @@ class KubeConfig():
         else:
             return False
 
-class Initialize():
+class Initialize:
     def __init__(self, arguments):
         self.arguments = arguments
         self.aws_config = None
@@ -105,10 +109,21 @@ class Initialize():
         self.profiles = {}
         self.kube_configs = {}
         self.system = f"{platform.system()}".lower()
-        if self.system == "windows":
-            self.search_paths = [f"{Path.home()}{os.sep}bin", f"{Path.home()}{os.sep}AppData{os.sep}Local{os.sep}Programs{os.sep}aws-sso-login", f"C:\Windows", f"C:\Windows\System32"]
+        # Search path for dependant binaries (aws, kubectl, docker)
+        if self.system == "darwin" and getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            self.search_paths = [
+                '/usr/local/bin',
+                '/usr/bin',
+                '/bin',
+                '/usr/sbin',
+                '/sbin',
+                '/opt/homebrew/bin',
+                f"{Path.home()}{os.sep}bin",
+                f"{Path.home()}{os.sep}.rd{os.sep}bin"
+            ]
         else:
-            self.search_paths = [f"{Path.home()}{os.sep}bin",'/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
+            path = os.environ.get('PATH', '')
+            self.search_paths = path.split(os.pathsep)
 
         # Verify that shell commands are installed
         for cmd in self.arguments["cmd"]:
@@ -187,6 +202,7 @@ class Initialize():
 #EKS_CLUSTER=my-cluster
 #AWS_PROFILE=default
 #AWS_REGION=us-east-1
+#AWS_PARTITION=aws
 #ROLE=kubernetes-admins-access
 """)
                 return True
@@ -196,7 +212,7 @@ class Initialize():
                 return False
 
 
-class EnvCodeArtifactToken():
+class EnvCodeArtifactToken:
     def __init__(self, token, domain, env_file=None):
         self.var_header = '# CodeArtifact Token'
         self.var_footer = '# End CodeArtifact Token'
