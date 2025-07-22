@@ -44,7 +44,7 @@ jobs:
             OUT_FILE_NAME: aws-sso-login-linux-amd64.zip
             ASSET_MIME: application/zip
           - os: [macos-latest]
-            TARGET: macos
+            TARGET: macos-amd64
             CMD_BUILD: >
                 set -x &&
                 uname -a &&
@@ -67,6 +67,31 @@ jobs:
                 "dist/" &&
                 mv aws-sso-login-macos-amd64.dmg dist/
             OUT_FILE_NAME: aws-sso-login-macos-amd64.dmg
+            ASSET_MIME: application/octet-stream
+          - os: [ macos-latest ]
+            TARGET: macos-arm64
+            CMD_BUILD: >
+              set -x &&
+              uname -a &&
+              pyinstaller --clean --noconfirm aws-sso-login.spec  &&
+              cp ./resources/aws_identity_center.png ./dist/aws-sso-login.app/Contents/Resources/ &&
+              cp ./README.md ./dist/aws-sso-login.app/Contents/Resources/ &&
+              brew install create-dmg &&
+              create-dmg --volname "AWS SSO Login Installer"
+              --volname "AWS SSO Login Installer"
+              --volicon "resources/aws_identity_center.icns"
+              --hdiutil-quiet
+              --background "resources/installer_background.png"
+              --window-size 480 440
+              --window-pos 400 420
+              --icon-size 100
+              --icon "aws-sso-login.app" 0 140
+              --hide-extension "aws-sso-login.app"
+              --app-drop-link 240 135
+              "aws-sso-login-macos-arm64.dmg"
+              "dist/" &&
+              mv aws-sso-login-macos-amd64.dmg dist/
+            OUT_FILE_NAME: aws-sso-login-macos-arm64.dmg
             ASSET_MIME: application/octet-stream
           - os: [windows-latest]
             TARGET: windows
