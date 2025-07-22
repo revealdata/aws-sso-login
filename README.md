@@ -82,6 +82,7 @@ Each section of the configuration file represents a cluster. The section name is
  - `EKS_CLUSTER`: (required) The name of the EKS cluster.
  - `AWS_PROFILE`: (required) The name of the AWS profile to use for the cluster authentication.
  - `AWS_REGION`: (optional) The AWS region of the EKS cluster. If not specified the region will be determined from the AWS CLI configuration file.
+ - `AWS_PARTITION`: (optional) The AWS partition. Defaults to `aws` if not specified. Used to build the arn for the `ROLE`.
  - `ROLE`: (optional) The name of the AWS role to assume for the cluster authentication. If not specified, no role will be used.
  - `KUBE_CONFIG`: (optional) The path to the kubeconfig file to update. If not specified, the default kubeconfig file will be used.
 
@@ -92,6 +93,7 @@ ENABLE=true
 EKS_CLUSTER=prod-eks-cluster-name
 AWS_PROFILE=default
 AWS_REGION=us-east-1
+AWS_PARTITION=aws
 ROLE=Department-Dev
 KUBE_CONFIG=~/.kube/config.prod
 ```
